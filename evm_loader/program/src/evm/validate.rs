@@ -151,12 +151,10 @@ impl Container {
         };
         let offset = code.get_i16_or_default(imm);
         let dest = (from as isize + offset as isize) as usize;
-        if dest >= length {
+        if dest >= length || !analysis.is_code_segment(dest) {
             return Err(Error::ValidationInvalidJumpDest(offset, dest, imm));
         }
-        if !analysis.is_code_segment(dest) {
-            return Err(Error::ValidationInvalidJumpDest(offset, dest, imm));
-        }
+
         Ok(analysis)
     }
 
@@ -182,13 +180,14 @@ impl Container {
             pos: 0,
             height: current_section.input as usize,
         }];
+
         let mut max_stack_height = current_section.input as usize;
         while !worklist.is_empty() {
             let worklist_item = worklist.pop().unwrap();
             let mut pos = worklist_item.pos;
             let mut height = worklist_item.height;
 
-            'outer: while pos < code.len() {
+            while pos < code.len() {
                 let op = code.get_or_default(pos);
                 let want_option = heights.get(&pos);
 
@@ -247,7 +246,7 @@ impl Container {
                                 pos,
                             ));
                         }
-                        break 'outer;
+                        break;
                     }
                     RJUMP => {
                         let arg = code.get_i16_or_default(pos + 1);
@@ -262,7 +261,8 @@ impl Container {
                         pos += 3;
                     }
                     RJUMPV => {
-                        let count = code.get_or_default(pos + 1);
+                        let count = code.get_or_default(pos + 1) as usize;
+
                         for i in 0..count {
                             let arg = code.get_i16_or_default(pos + 2 + 2 * i as usize);
                             worklist.push(Item {
@@ -271,22 +271,25 @@ impl Container {
                                 height,
                             });
                         }
+
                         pos += 2 + 2 * count as usize;
                     }
+                    _ if op >= PUSH1 && op <= PUSH32 => {
+                        pos += 1 + (op - PUSH0.u8()) as usize;
+                    }
+                    _ if opcode_info.terminal => {
+                        break;
+                    }
                     _ => {
-                        if op >= PUSH1 && op <= PUSH32 {
-                            pos += 1 + (op - PUSH0.u8()) as usize;
-                        } else if opcode_info.terminal {
-                            break 'outer;
-                        } else {
-                            // Simple op, no operand.
-                            pos += 1;
-                        }
+                        // Simple op, no operand.
+                        pos += 1;
                     }
                 }
+
                 max_stack_height = max_stack_height.max(height);
             }
         }
+
         if max_stack_height != current_section.max_stack_height as usize {
             return Err(Error::ValidationInvalidMaxStackHeight(
                 section,
@@ -301,10 +304,9 @@ impl Container {
 #[allow(clippy::enum_glob_use)]
 #[cfg(test)]
 mod tests {
+    use super::OpCode::*;
     use super::*;
     use crate::evm::Buffer;
-
-    use super::OpCode::*;
 
     #[test]
     fn validation_test() {
@@ -472,7 +474,7 @@ mod tests {
         ];
 
         for (code, meta) in codes {
-            assert!(Container::validate_code(&code, 0, &meta).is_ok());
+            Container::validate_code(&code, 0, &meta).unwrap();
         }
     }
 
