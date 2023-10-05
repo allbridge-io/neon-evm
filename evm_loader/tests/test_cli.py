@@ -34,8 +34,10 @@ def test_emulate_transfer(user_account, evm_loader, session_user):
         session_user.eth_address.hex(),
         data=None
     )
-    assert result['exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
-    assert result['steps_executed'] == 1, f"Steps executed amount is not 1. Result: {result}"
+    assert result[
+        'exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
+    assert result[
+        'steps_executed'] == 1, f"Steps executed amount is not 1. Result: {result}"
     assert result['used_gas'] > 0, f"Used gas is less than 0. Result: {result}"
 
 
@@ -43,9 +45,6 @@ def test_emulate_contract_deploy(user_account, evm_loader):
     contract_path = pytest.CONTRACTS_PATH / "hello_world.binary"
     emulate_contract_deploy(user_account, evm_loader, contract_path)
 
-def test_emulate_eof_contract_deploy(user_account, evm_loader):
-    contract_path = pytest.EOF_CONTRACTS_PATH / "hello_world.binary"
-    emulate_contract_deploy(user_account, evm_loader, contract_path)
 
 def emulate_contract_deploy(user_account, evm_loader, contract_path):
     with open(contract_path, 'rb') as f:
@@ -57,18 +56,19 @@ def emulate_contract_deploy(user_account, evm_loader, contract_path):
         'deploy',
         contract_code.hex()
     )
-    assert result['exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
-    assert result['steps_executed'] > 0, f"Steps executed amount is not 0. Result: {result}"
+    assert result[
+        'exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
+    assert result[
+        'steps_executed'] > 0, f"Steps executed amount is not 0. Result: {result}"
     assert result['used_gas'] > 0, f"Used gas is less than 0. Result: {result}"
 
 
 def test_emulate_call_contract_function(user_account, evm_loader, operator_keypair, treasury_pool):
-    contract = deploy_contract(operator_keypair, user_account, "hello_world.binary", evm_loader, treasury_pool, eof=False)
-    emulate_call_contract_function(user_account, evm_loader, operator_keypair, treasury_pool, contract)
+    contract = deploy_contract(operator_keypair, user_account,
+                               "hello_world.binary", evm_loader, treasury_pool)
+    emulate_call_contract_function(
+        user_account, evm_loader, operator_keypair, treasury_pool, contract)
 
-def test_emulate_call_eof_contract_function(user_account, evm_loader, operator_keypair, treasury_pool):
-    contract = deploy_contract(operator_keypair, user_account, "hello_world.binary", evm_loader, treasury_pool, eof=True)
-    emulate_call_contract_function(user_account, evm_loader, operator_keypair, treasury_pool, contract)
 
 def emulate_call_contract_function(user_account, evm_loader, operator_keypair, treasury_pool, contract):
     assert contract.eth_address
@@ -81,14 +81,16 @@ def emulate_call_contract_function(user_account, evm_loader, operator_keypair, t
         data.hex()
     )
 
-    assert result['exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
+    assert result[
+        'exit_status'] == 'succeed', f"The 'exit_status' field is not succeed. Result: {result}"
     assert result['steps_executed'] > 0, f"Steps executed amount is 0. Result: {result}"
     assert result['used_gas'] > 0, f"Used gas is less than 0. Result: {result}"
     assert "Hello World" in to_text(result["result"])
 
 
 def test_neon_elf_params(evm_loader):
-    result = neon_cli().call(f"--evm_loader={evm_loader.loader_id} neon-elf-params")
+    result = neon_cli().call(
+        f"--evm_loader={evm_loader.loader_id} neon-elf-params")
     some_fields = ['NEON_CHAIN_ID', 'NEON_TOKEN_MINT', 'NEON_REVISION']
     for field in some_fields:
         assert field in result, f"The field {field} is not in result {result}"
@@ -113,7 +115,8 @@ def test_collect_treasury(evm_loader):
 
 
 def test_init_environment(evm_loader):
-    result = neon_cli().call(f"init-environment --evm_loader {evm_loader.loader_id}")
+    result = neon_cli().call(
+        f"init-environment --evm_loader {evm_loader.loader_id}")
     assert len(result["transactions"]) == 0
 
 
@@ -124,7 +127,8 @@ def test_get_ether_account_data(evm_loader, user_account):
     assert f"0x{user_account.eth_address.hex()}" == result["address"]
     assert str(user_account.solana_account_address) == result["solana_address"]
 
-    assert solana_client.get_account_info(user_account.solana_account.public_key).value is not None
+    assert solana_client.get_account_info(
+        user_account.solana_account.public_key).value is not None
 
 
 def test_create_ether_account(evm_loader):
@@ -132,7 +136,8 @@ def test_create_ether_account(evm_loader):
     result = neon_cli().call(
         f"create-ether-account --evm_loader {evm_loader.loader_id} {acc}")
 
-    acc_info = solana_client.get_account_info(PublicKey(result['solana_address']), commitment=Confirmed)
+    acc_info = solana_client.get_account_info(
+        PublicKey(result['solana_address']), commitment=Confirmed)
     assert acc_info.value is not None
 
 
@@ -140,54 +145,16 @@ def test_deposit(evm_loader, user_account):
     amount = random.randint(1, 100000)
     result = neon_cli().call(
         f"deposit --evm_loader {evm_loader.loader_id} {amount} {user_account.eth_address.hex()}")
-    balance_after = get_neon_balance(solana_client, user_account.solana_account_address)
+    balance_after = get_neon_balance(
+        solana_client, user_account.solana_account_address)
     assert result["transaction"] is not None
     assert balance_after == amount * 1000000000
 
 
 def test_get_storage_at(evm_loader, operator_keypair, user_account, treasury_pool):
-    contract = deploy_contract(operator_keypair, user_account, "hello_world.binary", evm_loader, treasury_pool)
+    contract = deploy_contract(
+        operator_keypair, user_account, "hello_world.binary", evm_loader, treasury_pool)
     expected_storage = '0000000000000000000000000000000000000000000000000000000000000005'
     result = neon_cli().call(
         f"get-storage-at --evm_loader {evm_loader.loader_id} {contract.eth_address.hex()} 0x0")
     assert result == expected_storage
-
-
-def test_cancel_trx(evm_loader, user_account, rw_lock_contract, operator_keypair, treasury_pool):
-    cancel_trx_eof(evm_loader, user_account, rw_lock_contract, operator_keypair, treasury_pool)
-
-def test_cancel_trx_eof(evm_loader, user_account, rw_lock_eof_contract, operator_keypair, treasury_pool):
-    cancel_trx_eof(evm_loader, user_account, rw_lock_eof_contract, operator_keypair, treasury_pool)
-
-def cancel_trx_eof(evm_loader, user_account, rw_lock_contract, operator_keypair, treasury_pool):
-    func_name = abi.function_signature_to_4byte_selector('unchange_storage(uint8,uint8)')
-    data = (func_name + bytes.fromhex("%064x" % 0x01) + bytes.fromhex("%064x" % 0x01))
-
-    eth_transaction = make_eth_transaction(
-        rw_lock_contract.eth_address,
-        data,
-        user_account.solana_account,
-        user_account.solana_account_address,
-    )
-    storage_account = create_holder(operator_keypair)
-    instruction = eth_transaction.rawTransaction
-    trx = TransactionWithComputeBudget(operator_keypair)
-    trx.add(
-        make_PartialCallOrContinueFromRawEthereumTX(
-            instruction,
-            operator_keypair, evm_loader, storage_account, treasury_pool.account, treasury_pool.buffer, 1,
-            [
-                rw_lock_contract.solana_address,
-                user_account.solana_account_address,
-            ]
-        )
-    )
-    solana_client = Client(SOLANA_URL)
-
-    receipt = send_transaction(solana_client, trx, operator_keypair)
-    assert receipt.value.transaction.meta.err is None
-    user_nonce = get_transaction_count(solana_client, user_account.solana_account_address)
-
-    result = neon_cli().call(f"cancel-trx --evm_loader={evm_loader.loader_id} {storage_account}")
-    assert result["transaction"] is not None
-    assert user_nonce < get_transaction_count(solana_client, user_account.solana_account_address)

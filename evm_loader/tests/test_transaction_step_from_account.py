@@ -50,19 +50,16 @@ class TestTransactionStepFromAccount:
         assert recipient_balance_before + amount == recipient_balance_after
 
     def test_deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
-        self.deploy_contract(operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens, False)
+        self.deploy_contract(operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens)
 
-    def test_deploy_eof_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
-        self.deploy_contract(operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens, True)
-
-    def deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens, eof):
+    def deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
         contract_filename = "hello_world.binary"
         contract = create_contract_address(sender_with_tokens, evm_loader)
 
-        signed_tx = make_deployment_transaction(sender_with_tokens, contract_filename, eof=eof)
+        signed_tx = make_deployment_transaction(sender_with_tokens, contract_filename)
         write_transaction_to_holder_account(signed_tx, holder_acc, operator_keypair)
 
-        contract_path = (pytest.EOF_CONTRACTS_PATH if eof else pytest.CONTRACTS_PATH) / contract_filename
+        contract_path = pytest.CONTRACTS_PATH / contract_filename
         with open(contract_path, 'rb') as f:
             contract_code = f.read()
 
@@ -80,10 +77,6 @@ class TestTransactionStepFromAccount:
         self.call_contract_function_without_neon_transfer(operator_keypair, holder_acc, treasury_pool, sender_with_tokens,
                                                           evm_loader, string_setter_contract, "exit_status=0x11")
 
-    def test_call_eof_contract_function_without_neon_transfer(self, operator_keypair, holder_acc, treasury_pool,
-                                                          sender_with_tokens, evm_loader, string_setter_eof_contract):
-        self.call_contract_function_without_neon_transfer(operator_keypair, holder_acc, treasury_pool, sender_with_tokens,
-                                                          evm_loader, string_setter_eof_contract, "exit_status=0x12")
 
     def call_contract_function_without_neon_transfer(self, operator_keypair, holder_acc, treasury_pool,
                                                           sender_with_tokens, evm_loader, string_setter_contract, exit_status):
@@ -108,13 +101,6 @@ class TestTransactionStepFromAccount:
         self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool,
                                                        sender_with_tokens, string_setter_contract, holder_acc,
                                                        evm_loader, "exit_status=0x11")
-
-    def test_call_eof_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
-                                                      sender_with_tokens, string_setter_eof_contract, holder_acc,
-                                                          evm_loader):
-        self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool,
-                                                       sender_with_tokens, string_setter_eof_contract, holder_acc,
-                                                       evm_loader, "exit_status=0x12")
 
 
     def call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
@@ -488,13 +474,6 @@ class TestStepFromAccountChangingOperatorsDuringTrxRun:
         self.next_operator_can_continue_trx_after_some_time(rw_lock_contract, user_account, evm_loader,
                                                                     operator_keypair, second_operator_keypair, treasury_pool,
                                                                     new_holder_acc, "exit_status=0x11")
-
-    def test_next_operator_can_continue_trx_after_some_time(self, rw_lock_eof_contract, user_account, evm_loader,
-                                                            operator_keypair, second_operator_keypair, treasury_pool,
-                                                            new_holder_acc):
-        self.next_operator_can_continue_trx_after_some_time(rw_lock_eof_contract, user_account, evm_loader,
-                                                                    operator_keypair, second_operator_keypair, treasury_pool,
-                                                                    new_holder_acc, "exit_status=0x12")
 
     def next_operator_can_continue_trx_after_some_time(self, rw_lock_contract, user_account, evm_loader,
                                                             operator_keypair, second_operator_keypair, treasury_pool,

@@ -25,8 +25,10 @@ class TestExecuteTrxFromInstruction:
     def test_simple_transfer_transaction(self, operator_keypair, treasury_pool, sender_with_tokens, session_user,
                                          evm_loader):
         amount = 10
-        sender_balance_before = get_neon_balance(solana_client, sender_with_tokens.solana_account_address)
-        recipient_balance_before = get_neon_balance(solana_client, session_user.solana_account_address)
+        sender_balance_before = get_neon_balance(
+            solana_client, sender_with_tokens.solana_account_address)
+        recipient_balance_before = get_neon_balance(
+            solana_client, session_user.solana_account_address)
 
         signed_tx = make_eth_transaction(session_user.eth_address, None, sender_with_tokens.solana_account,
                                          sender_with_tokens.solana_account_address, amount)
@@ -35,8 +37,10 @@ class TestExecuteTrxFromInstruction:
                                             [sender_with_tokens.solana_account_address,
                                              session_user.solana_account_address],
                                             operator_keypair)
-        sender_balance_after = get_neon_balance(solana_client, sender_with_tokens.solana_account_address)
-        recipient_balance_after = get_neon_balance(solana_client, session_user.solana_account_address)
+        sender_balance_after = get_neon_balance(
+            solana_client, sender_with_tokens.solana_account_address)
+        recipient_balance_after = get_neon_balance(
+            solana_client, session_user.solana_account_address)
         assert sender_balance_before - amount == sender_balance_after
         assert recipient_balance_before + amount == recipient_balance_after
         check_transaction_logs_have_text(resp.value, "exit_status=0x11")
@@ -46,7 +50,8 @@ class TestExecuteTrxFromInstruction:
         # recipient account should be created
         recipient = Keypair.generate()
 
-        recipient_ether = eth_keys.PrivateKey(recipient.secret_key[:32]).public_key.to_canonical_address()
+        recipient_ether = eth_keys.PrivateKey(
+            recipient.secret_key[:32]).public_key.to_canonical_address()
         recipient_solana_address, _ = evm_loader.ether2program(recipient_ether)
         amount = 10
         signed_tx = make_eth_transaction(recipient_ether, None, sender_with_tokens.solana_account,
@@ -56,7 +61,8 @@ class TestExecuteTrxFromInstruction:
                                             [sender_with_tokens.solana_account_address,
                                              PublicKey(recipient_solana_address)],
                                             operator_keypair)
-        recipient_balance_after = get_neon_balance(solana_client, PublicKey(recipient_solana_address))
+        recipient_balance_after = get_neon_balance(
+            solana_client, PublicKey(recipient_solana_address))
         check_transaction_logs_have_text(resp.value, "exit_status=0x11")
 
         assert recipient_balance_after == amount
@@ -64,18 +70,13 @@ class TestExecuteTrxFromInstruction:
     def test_call_contract_function_without_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
                                                           evm_loader, string_setter_contract):
         self.call_contract_function_without_neon_transfer(operator_keypair, treasury_pool, sender_with_tokens,
-                                                                  evm_loader, string_setter_contract, "exit_status=0x11")
-
-    def test_call_eof_contract_function_without_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                          evm_loader, string_setter_eof_contract):
-        self.call_contract_function_without_neon_transfer(operator_keypair, treasury_pool, sender_with_tokens,
-                                                                  evm_loader, string_setter_eof_contract, "exit_status=0x12")
-
+                                                          evm_loader, string_setter_contract, "exit_status=0x11")
 
     def call_contract_function_without_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                          evm_loader, string_setter_contract, exit_status):
+                                                     evm_loader, string_setter_contract, exit_status):
         text = ''.join(random.choice(string.ascii_letters) for _ in range(10))
-        signed_tx = make_contract_call_trx(sender_with_tokens, string_setter_contract, "set(string)", [text])
+        signed_tx = make_contract_call_trx(
+            sender_with_tokens, string_setter_contract, "set(string)", [text])
 
         resp = execute_trx_from_instruction(operator_keypair, evm_loader, treasury_pool.account, treasury_pool.buffer,
                                             signed_tx,
@@ -89,25 +90,27 @@ class TestExecuteTrxFromInstruction:
                                                   "get()"))
 
     def test_call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                           evm_loader):
+                                                       evm_loader):
         contract = deploy_contract(operator_keypair, sender_with_tokens, "string_setter.binary", evm_loader,
-                                          treasury_pool)
+                                   treasury_pool)
         self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool, sender_with_tokens,
-                                                               evm_loader, contract, "exit_status=0x11")
+                                                       evm_loader, contract, "exit_status=0x11")
 
     def test_call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                           evm_loader):
+                                                       evm_loader):
         contract = deploy_contract(operator_keypair, sender_with_tokens, "string_setter.binary", evm_loader,
-                                          treasury_pool)
+                                   treasury_pool)
         self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool, sender_with_tokens,
-                                                               evm_loader, contract, "exit_status=0x12")
+                                                       evm_loader, contract, "exit_status=0x12")
 
     def call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                       evm_loader, contract, exit_status):
+                                                  evm_loader, contract, exit_status):
         transfer_amount = random.randint(1, 1000)
 
-        sender_balance_before = get_neon_balance(solana_client, sender_with_tokens.solana_account_address)
-        contract_balance_before = get_neon_balance(solana_client, contract.solana_address)
+        sender_balance_before = get_neon_balance(
+            solana_client, sender_with_tokens.solana_account_address)
+        contract_balance_before = get_neon_balance(
+            solana_client, contract.solana_address)
 
         text = ''.join(random.choice(string.ascii_letters) for i in range(10))
         func_name = abi.function_signature_to_4byte_selector('set(string)')
@@ -122,10 +125,13 @@ class TestExecuteTrxFromInstruction:
 
         check_transaction_logs_have_text(resp.value, "exit_status=0x11")
 
-        assert text in to_text(neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, contract, "get()"))
+        assert text in to_text(neon_cli().call_contract_get_function(
+            evm_loader, sender_with_tokens, contract, "get()"))
 
-        sender_balance_after = get_neon_balance(solana_client, sender_with_tokens.solana_account_address)
-        contract_balance_after = get_neon_balance(solana_client, contract.solana_address)
+        sender_balance_after = get_neon_balance(
+            solana_client, sender_with_tokens.solana_account_address)
+        contract_balance_after = get_neon_balance(
+            solana_client, contract.solana_address)
         assert sender_balance_before - transfer_amount == sender_balance_after
         assert contract_balance_before + transfer_amount == contract_balance_after
 
@@ -157,7 +163,8 @@ class TestExecuteTrxFromInstruction:
                                          operator_keypair)
 
     def test_insufficient_funds(self, operator_keypair, treasury_pool, evm_loader, sender_with_tokens, session_user):
-        user_balance = get_neon_balance(solana_client, session_user.solana_account_address)
+        user_balance = get_neon_balance(
+            solana_client, session_user.solana_account_address)
 
         signed_tx = make_eth_transaction(sender_with_tokens.eth_address, None, session_user.solana_account,
                                          session_user.solana_account_address, user_balance + 1)
@@ -280,12 +287,15 @@ class TestExecuteTrxFromInstruction:
     def test_operator_does_not_have_enough_founds(self, sender_with_tokens, evm_loader, treasury_pool,
                                                   session_user):
         key = Keypair.generate()
-        caller_ether = eth_keys.PrivateKey(key.secret_key[:32]).public_key.to_canonical_address()
+        caller_ether = eth_keys.PrivateKey(
+            key.secret_key[:32]).public_key.to_canonical_address()
         caller, caller_nonce = evm_loader.ether2program(caller_ether)
-        caller_token = get_associated_token_address(PublicKey(caller), NEON_TOKEN_MINT_ID)
+        caller_token = get_associated_token_address(
+            PublicKey(caller), NEON_TOKEN_MINT_ID)
         evm_loader.create_ether_account(caller_ether)
 
-        operator_without_money = Caller(key, PublicKey(caller), caller_ether, caller_nonce, caller_token)
+        operator_without_money = Caller(key, PublicKey(
+            caller), caller_ether, caller_nonce, caller_token)
 
         signed_tx = make_eth_transaction(session_user.eth_address, None, sender_with_tokens.solana_account,
                                          sender_with_tokens.solana_account_address, 1)
