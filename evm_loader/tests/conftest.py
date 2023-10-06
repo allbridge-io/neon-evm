@@ -47,8 +47,7 @@ def operator_keypair(request, evm_loader) -> Keypair:
     with open(pathlib.Path(request.config.getoption("--operator-keys").split(',')[0]).expanduser(), "r") as key:
         secret_key = json.load(key)[:32]
         account = Keypair.from_secret_key(secret_key)
-    caller_ether = eth_keys.PrivateKey(
-        account.secret_key[:32]).public_key.to_canonical_address()
+    caller_ether = eth_keys.PrivateKey(account.secret_key[:32]).public_key.to_canonical_address()
     caller, caller_nonce = evm_loader.ether2program(caller_ether)
 
     if get_solana_balance(PublicKey(caller)) == 0:
@@ -66,8 +65,7 @@ def second_operator_keypair(request, evm_loader) -> Keypair:
     with open(pathlib.Path(request.config.getoption("--operator-keys").split(",")[1]).expanduser(), "r") as key:
         secret_key = json.load(key)[:32]
         account = Keypair.from_secret_key(secret_key)
-    caller_ether = eth_keys.PrivateKey(
-        account.secret_key[:32]).public_key.to_canonical_address()
+    caller_ether = eth_keys.PrivateKey(account.secret_key[:32]).public_key.to_canonical_address()
     caller, caller_nonce = evm_loader.ether2program(caller_ether)
 
     if get_solana_balance(PublicKey(caller)) == 0:
@@ -124,8 +122,7 @@ def rw_lock_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_u
 @pytest.fixture(scope="function")
 def rw_lock_caller(evm_loader: EvmLoader, operator_keypair: Keypair,
                    session_user: Caller, treasury_pool: TreasuryPool, rw_lock_contract: Contract) -> Contract:
-    constructor_args = eth_abi.encode(
-        ['address'], [rw_lock_contract.eth_address.hex()])
+    constructor_args = eth_abi.encode(['address'], [rw_lock_contract.eth_address.hex()])
     return deploy_contract(operator_keypair, session_user, "rw_lock_caller.binary", evm_loader,
                            treasury_pool, encoded_args=constructor_args)
 

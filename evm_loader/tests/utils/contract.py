@@ -76,19 +76,16 @@ def deploy_contract(
         contract_path = pathlib.Path(contract_path)
     contract = create_contract_address(user, evm_loader)
     holder_acc = create_holder(operator)
-    signed_tx = make_deployment_transaction(
-        user, contract_path, encoded_args=encoded_args)
+    signed_tx = make_deployment_transaction(user, contract_path, encoded_args=encoded_args)
     write_transaction_to_holder_account(signed_tx, holder_acc, operator)
 
     contract_deployed = False
     while not contract_deployed:
         receipt = send_transaction_step_from_account(operator, evm_loader, treasury_pool, holder_acc,
-                                                     [contract.solana_address,
-                                                         user.solana_account_address],
+                                                     [contract.solana_address, user.solana_account_address],
                                                      step_count, operator)
         if receipt.value.transaction.meta.err:
-            raise AssertionError(
-                f"Can't deploy contract: {receipt.value.transaction.meta.err}")
+            raise AssertionError(f"Can't deploy contract: {receipt.value.transaction.meta.err}")
         for log in receipt.value.transaction.meta.log_messages:
             if "exit_status" in log:
                 contract_deployed = True

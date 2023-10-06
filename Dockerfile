@@ -32,8 +32,8 @@ FROM ubuntu:20.04 AS contracts
 RUN apt-get update && \
     DEBIAN_FRONTEND=nontineractive apt-get -y install xxd && \
     rm -rf /var/lib/apt/lists/* /var/lib/apt/cache/*
-COPY evm_loader/tests/contracts/*.sol /opt/
-COPY evm_loader/tests eof-contracts/*.binary /opt/eof-contracts/
+COPY evm_loader/tests_eof/contracts/*.sol /opt/
+COPY evm_loader/tests_eof/eof-contracts/*.binary /opt/eof-contracts/
 COPY evm_loader/solidity/*.sol /opt/
 #COPY evm_loader/tests/test_solidity_precompiles.json /opt/
 COPY --from=solc /usr/bin/solc /usr/bin/solc
@@ -52,7 +52,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get -y install vim less openssl ca-certificates curl python3 python3-pip parallel && \
     rm -rf /var/lib/apt/lists/*
 
-COPY evm_loader/tests/requirements.txt /tmp/
+COPY evm_loader/tests_eof/requirements.txt /tmp/
 RUN pip3 install -r /tmp/requirements.txt
 
 COPY /evm_loader/solidity/ /opt/contracts/contracts/
@@ -90,7 +90,7 @@ COPY evm_loader/wait-for-solana.sh \
     /opt/
 
 COPY evm_loader/keys/ /opt/keys
-COPY evm_loader/tests /opt/tests
+COPY evm_loader/tests_eof /opt/tests_eof
 COPY evm_loader/operator1-keypair.json /root/.config/solana/id.json
 COPY evm_loader/operator2-keypair.json /root/.config/solana/id2.json
 
