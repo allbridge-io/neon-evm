@@ -2,16 +2,14 @@ import os
 import json
 import pathlib
 
-import eth_abi
 import pytest
 
 from solana.keypair import Keypair
 from eth_keys import keys as eth_keys
 from solana.publickey import PublicKey
-from solana.rpc.commitment import Confirmed
 
 from .solana_utils import EvmLoader, OperatorAccount, create_treasury_pool_address, make_new_user, get_solana_balance, \
-    deposit_neon, solana_client
+    deposit_neon
 from .utils.contract import deploy_contract
 from .utils.storage import create_holder
 from .utils.types import TreasuryPool, Caller, Contract
@@ -119,30 +117,9 @@ def new_holder_acc(operator_keypair) -> PublicKey:
 
 
 @pytest.fixture(scope="function")
-def rw_lock_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_user: Caller,
-                     treasury_pool) -> Contract:
-    return deploy_contract(operator_keypair, session_user, "rw_lock.binary", evm_loader, treasury_pool)
-
-
-@pytest.fixture(scope="function")
 def rw_lock_eof_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_user: Caller,
                          treasury_pool) -> Contract:
     return deploy_contract(operator_keypair, session_user, "rw_lock.binary", evm_loader, treasury_pool, eof=True)
-
-
-@pytest.fixture(scope="function")
-def rw_lock_caller(evm_loader: EvmLoader, operator_keypair: Keypair,
-                   session_user: Caller, treasury_pool: TreasuryPool, rw_lock_contract: Contract) -> Contract:
-    constructor_args = eth_abi.encode(
-        ['address'], [rw_lock_contract.eth_address.hex()])
-    return deploy_contract(operator_keypair, session_user, "rw_lock_caller.binary", evm_loader,
-                           treasury_pool, encoded_args=constructor_args)
-
-
-@pytest.fixture(scope="function")
-def string_setter_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_user: Caller,
-                           treasury_pool) -> Contract:
-    return deploy_contract(operator_keypair, session_user, "string_setter.binary", evm_loader, treasury_pool)
 
 
 @pytest.fixture(scope="function")

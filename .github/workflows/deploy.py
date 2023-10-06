@@ -44,7 +44,10 @@ def cli():
 
 @cli.command(name="build_docker_image")
 @click.option('--github_sha')
-def build_docker_image(github_sha):
+@click.option('--eof', default=False)
+def build_docker_image(github_sha, eof: bool):
+    dockerfile = "./Dockerfile.eof" if eof else "./Dockerfile"
+
     solana_image = f'solanalabs/solana:{SOLANA_NODE_VERSION}'
     docker_client.pull(solana_image)
     buildargs = {"REVISION": github_sha,
@@ -53,7 +56,8 @@ def build_docker_image(github_sha):
 
     tag = f"{IMAGE_NAME}:{github_sha}"
     click.echo("start build")
-    output = docker_client.build(tag=tag, buildargs=buildargs, path="./", decode=True)
+    output = docker_client.build(
+        tag=tag, buildargs=buildargs, dockerfile=dockerfile, path="./", decode=True)
     process_output(output)
 
 
@@ -61,7 +65,8 @@ def build_docker_image(github_sha):
 @click.option('--github_sha')
 def publish_image(github_sha):
     docker_client.login(username=DOCKER_USER, password=DOCKER_PASSWORD)
-    out = docker_client.push(f"{IMAGE_NAME}:{github_sha}", decode=True, stream=True)
+    out = docker_client.push(
+        f"{IMAGE_NAME}:{github_sha}", decode=True, stream=True)
     process_output(out)
 
 
@@ -82,11 +87,13 @@ def finalize_image(head_ref_branch, github_ref, github_sha):
             tag = head_ref_branch.split('/')[-1]
 
         docker_client.login(username=DOCKER_USER, password=DOCKER_PASSWORD)
-        out = docker_client.pull(f"{IMAGE_NAME}:{github_sha}", decode=True, stream=True)
+        out = docker_client.pull(
+            f"{IMAGE_NAME}:{github_sha}", decode=True, stream=True)
         process_output(out)
 
         docker_client.tag(f"{IMAGE_NAME}:{github_sha}", f"{IMAGE_NAME}:{tag}")
-        out = docker_client.push(f"{IMAGE_NAME}:{tag}", decode=True, stream=True)
+        out = docker_client.push(
+            f"{IMAGE_NAME}:{tag}", decode=True, stream=True)
         process_output(out)
     else:
         click.echo("The image is not published, please create tag for publishing")
@@ -99,17 +106,21 @@ def run_subprocess(command):
 
 @cli.command(name="run_tests")
 @click.option('--github_sha')
-def run_tests(github_sha):
+@click.option('--eof', default=False)
+def run_tests(github_sha, eof: bool):
+    test_runner = "/opt/deploy-test-eof.sh" if eof else "/opt/deploy-test.sh"
+
     image_name = f"{IMAGE_NAME}:{github_sha}"
     os.environ["EVM_LOADER_IMAGE"] = image_name
     project_name = f"neon-evm-{github_sha}"
     stop_containers(project_name)
 
-    run_subprocess(f"docker-compose -p {project_name} -f ./evm_loader/docker-compose-ci.yml up -d")
+    run_subprocess(
+        f"docker-compose -p {project_name} -f ./evm_loader/docker-compose-ci.yml up -d")
     container_name = get_solana_container_name(project_name)
     click.echo("Start tests")
     exec_id = docker_client.exec_create(
-        container=container_name, cmd="/opt/deploy-test.sh")
+        container=container_name, cmd=test_runner)
     logs = docker_client.exec_start(exec_id['Id'], stream=True)
 
     tests_are_failed = False
@@ -144,7 +155,8 @@ def get_solana_container_name(project_name):
 
 
 def stop_containers(project_name):
-    run_subprocess(f"docker-compose -p {project_name} -f ./evm_loader/docker-compose-ci.yml down")
+    run_subprocess(
+        f"docker-compose -p {project_name} -f ./evm_loader/docker-compose-ci.yml down")
 
 
 @cli.command(name="trigger_proxy_action")
@@ -156,9 +168,11 @@ def stop_containers(project_name):
 @click.option('--is_draft')
 @click.option('--labels')
 def trigger_proxy_action(head_ref_branch, base_ref_branch, github_ref, github_sha, token, is_draft, labels):
-    is_develop_branch = github_ref in ['refs/heads/develop', 'refs/heads/master']
+    is_develop_branch = github_ref in [
+        'refs/heads/develop', 'refs/heads/master']
     is_tag_creating = 'refs/tags/' in github_ref
-    is_version_branch = re.match(VERSION_BRANCH_TEMPLATE, github_ref.replace("refs/heads/", "")) is not None
+    is_version_branch = re.match(
+        VERSION_BRANCH_TEMPLATE, github_ref.replace("refs/heads/", "")) is not None
     is_FTS_labeled_not_draft = 'FullTestSuit' in labels and is_draft != "true"
 
     if is_develop_branch or is_tag_creating or is_version_branch or is_FTS_labeled_not_draft:
@@ -183,15 +197,18 @@ def trigger_proxy_action(head_ref_branch, base_ref_branch, github_ref, github_sh
 
     runs_before = github.get_proxy_runs_list(proxy_branch)
     runs_count_before = github.get_proxy_runs_count(proxy_branch)
-    github.run_proxy_dispatches(proxy_branch, github_ref, github_sha, full_test_suite)
-    wait_condition(lambda: github.get_proxy_runs_count(proxy_branch) > runs_count_before)
+    github.run_proxy_dispatches(
+        proxy_branch, github_ref, github_sha, full_test_suite)
+    wait_condition(lambda: github.get_proxy_runs_count(
+        proxy_branch) > runs_count_before)
 
     runs_after = github.get_proxy_runs_list(proxy_branch)
     proxy_run_id = list(set(runs_after) - set(runs_before))[0]
     link = f"https://github.com/neonlabsorg/proxy-model.py/actions/runs/{proxy_run_id}"
     click.echo(f"Proxy run link: {link}")
     click.echo("Waiting for completed status...")
-    wait_condition(lambda: github.get_proxy_run_info(proxy_run_id)["status"] == "completed", timeout_sec=10800, delay=5)
+    wait_condition(lambda: github.get_proxy_run_info(proxy_run_id)[
+                   "status"] == "completed", timeout_sec=10800, delay=5)
 
     if github.get_proxy_run_info(proxy_run_id)["conclusion"] == "success":
         click.echo("Proxy tests passed successfully")
@@ -203,7 +220,8 @@ def wait_condition(func_cond, timeout_sec=60, delay=0.5):
     start_time = time.time()
     while True:
         if time.time() - start_time > timeout_sec:
-            raise RuntimeError(f"The condition not reached within {timeout_sec} sec")
+            raise RuntimeError(
+                f"The condition not reached within {timeout_sec} sec")
         try:
             if func_cond():
                 break
@@ -268,7 +286,8 @@ def process_output(output):
                 click.echo("not recognized (2): {}".format(line))
 
             if errors:
-                message = "problem executing Docker: {}".format(". ".join(errors))
+                message = "problem executing Docker: {}".format(
+                    ". ".join(errors))
                 raise SystemError(message)
 
 

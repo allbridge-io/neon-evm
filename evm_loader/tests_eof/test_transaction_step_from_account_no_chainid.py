@@ -8,45 +8,12 @@ from .solana_utils import write_transaction_to_holder_account, get_neon_balance,
     execute_transaction_steps_from_account_no_chain_id, neon_cli
 from .utils.constants import TAG_FINALIZED_STATE
 from .utils.contract import make_deployment_transaction, make_contract_call_trx
-from .utils.ethereum import make_eth_transaction, create_contract_address
+from .utils.ethereum import create_contract_address
 from .utils.layouts import FINALIZED_STORAGE_ACCOUNT_INFO_LAYOUT
 from .utils.transaction_checks import check_holder_account_tag, check_transaction_logs_have_text
 
 
 class TestTransactionStepFromAccountNoChainId:
-
-    def test_simple_transfer_transaction(self, operator_keypair, treasury_pool, evm_loader,
-                                         sender_with_tokens, session_user, holder_acc):
-        amount = 10
-        sender_balance_before = get_neon_balance(
-            solana_client, sender_with_tokens.solana_account_address)
-        recipient_balance_before = get_neon_balance(
-            solana_client, session_user.solana_account_address)
-
-        signed_tx = make_eth_transaction(session_user.eth_address, None, sender_with_tokens.solana_account,
-                                         sender_with_tokens.solana_account_address, amount, chain_id=None)
-        write_transaction_to_holder_account(
-            signed_tx, holder_acc, operator_keypair)
-        resp = execute_transaction_steps_from_account_no_chain_id(operator_keypair, evm_loader, treasury_pool,
-                                                                  holder_acc,
-                                                                  [session_user.solana_account_address,
-                                                                   sender_with_tokens.solana_account_address], 0)
-
-        sender_balance_after = get_neon_balance(
-            solana_client, sender_with_tokens.solana_account_address)
-        recipient_balance_after = get_neon_balance(
-            solana_client, session_user.solana_account_address)
-
-        check_holder_account_tag(
-            holder_acc, FINALIZED_STORAGE_ACCOUNT_INFO_LAYOUT, TAG_FINALIZED_STATE)
-        check_transaction_logs_have_text(
-            resp.value.transaction.transaction.signatures[0], "exit_status=0x11")
-        assert sender_balance_before - amount == sender_balance_after
-        assert recipient_balance_before + amount == recipient_balance_after
-
-    def test_deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
-        self.deploy_contract(operator_keypair, holder_acc,
-                             treasury_pool, evm_loader, sender_with_tokens, False)
 
     def test_deploy_eof_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
         self.deploy_contract(operator_keypair, holder_acc,
@@ -77,13 +44,6 @@ class TestTransactionStepFromAccountNoChainId:
             holder_acc, FINALIZED_STORAGE_ACCOUNT_INFO_LAYOUT, TAG_FINALIZED_STATE)
         check_transaction_logs_have_text(
             resp.value.transaction.transaction.signatures[0], "exit_status=0x12")
-
-    def test_call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
-                                                       sender_with_tokens, string_setter_contract, holder_acc,
-                                                       evm_loader):
-        self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool,
-                                                       sender_with_tokens, string_setter_contract, holder_acc,
-                                                       evm_loader, "exit_status=0x11")
 
     def test_call_eof_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
                                                            sender_with_tokens, string_setter_eof_contract, holder_acc,
