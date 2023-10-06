@@ -16,54 +16,18 @@ class TestExecuteTrxFromInstruction:
 
     def test_call_eof_contract_function_without_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
                                                               evm_loader, string_setter_eof_contract):
-        self.call_contract_function_without_neon_transfer(operator_keypair, treasury_pool, sender_with_tokens,
-                                                          evm_loader, string_setter_eof_contract, "exit_status=0x12")
-
-    def call_contract_function_without_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                     evm_loader, string_setter_contract, exit_status):
+        exit_status = "exit_status=0x12"
         text = ''.join(random.choice(string.ascii_letters) for _ in range(10))
         signed_tx = make_contract_call_trx(
-            sender_with_tokens, string_setter_contract, "set(string)", [text])
+            sender_with_tokens, string_setter_eof_contract, "set(string)", [text])
 
         resp = execute_trx_from_instruction(operator_keypair, evm_loader, treasury_pool.account, treasury_pool.buffer,
                                             signed_tx,
                                             [sender_with_tokens.solana_account_address,
-                                             string_setter_contract.solana_address],
+                                             string_setter_eof_contract.solana_address],
                                             operator_keypair)
 
         check_transaction_logs_have_text(resp.value, exit_status)
         assert text in to_text(
-            neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, string_setter_contract,
+            neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, string_setter_eof_contract,
                                                   "get()"))
-
-    def call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool, sender_with_tokens,
-                                                  evm_loader, contract, exit_status):
-        transfer_amount = random.randint(1, 1000)
-
-        sender_balance_before = get_neon_balance(
-            solana_client, sender_with_tokens.solana_account_address)
-        contract_balance_before = get_neon_balance(
-            solana_client, contract.solana_address)
-
-        text = ''.join(random.choice(string.ascii_letters) for i in range(10))
-        func_name = abi.function_signature_to_4byte_selector('set(string)')
-        data = func_name + eth_abi.encode(['string'], [text])
-        signed_tx = make_eth_transaction(contract.eth_address, data, sender_with_tokens.solana_account,
-                                         sender_with_tokens.solana_account_address, transfer_amount)
-        resp = execute_trx_from_instruction(operator_keypair, evm_loader, treasury_pool.account, treasury_pool.buffer,
-                                            signed_tx,
-                                            [sender_with_tokens.solana_account_address,
-                                             contract.solana_address],
-                                            operator_keypair)
-
-        check_transaction_logs_have_text(resp.value, "exit_status=0x11")
-
-        assert text in to_text(neon_cli().call_contract_get_function(
-            evm_loader, sender_with_tokens, contract, "get()"))
-
-        sender_balance_after = get_neon_balance(
-            solana_client, sender_with_tokens.solana_account_address)
-        contract_balance_after = get_neon_balance(
-            solana_client, contract.solana_address)
-        assert sender_balance_before - transfer_amount == sender_balance_after
-        assert contract_balance_before + transfer_amount == contract_balance_after

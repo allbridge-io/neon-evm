@@ -16,10 +16,7 @@ from .utils.transaction_checks import check_holder_account_tag, check_transactio
 class TestTransactionStepFromAccountNoChainId:
 
     def test_deploy_eof_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
-        self.deploy_contract(operator_keypair, holder_acc,
-                             treasury_pool, evm_loader, sender_with_tokens, True)
-
-    def deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens, eof):
+        eof = True
         contract_filename = "hello_world.binary"
         contract = create_contract_address(sender_with_tokens, evm_loader)
 
@@ -48,30 +45,24 @@ class TestTransactionStepFromAccountNoChainId:
     def test_call_eof_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
                                                            sender_with_tokens, string_setter_eof_contract, holder_acc,
                                                            evm_loader):
-        self.call_contract_function_with_neon_transfer(operator_keypair, treasury_pool,
-                                                       sender_with_tokens, string_setter_eof_contract, holder_acc,
-                                                       evm_loader, "exit_status=0x12")
-
-    def call_contract_function_with_neon_transfer(self, operator_keypair, treasury_pool,
-                                                  sender_with_tokens, string_setter_contract, holder_acc,
-                                                  evm_loader, exit_status):
+        exit_status = "exit_status=0x12"
         transfer_amount = random.randint(1, 1000)
 
         sender_balance_before = get_neon_balance(
             solana_client, sender_with_tokens.solana_account_address)
         contract_balance_before = get_neon_balance(
-            solana_client, string_setter_contract.solana_address)
+            solana_client, string_setter_eof_contract.solana_address)
 
         text = ''.join(random.choice(string.ascii_letters) for _ in range(10))
 
-        signed_tx = make_contract_call_trx(sender_with_tokens, string_setter_contract, "set(string)", [text],
+        signed_tx = make_contract_call_trx(sender_with_tokens, string_setter_eof_contract, "set(string)", [text],
                                            value=transfer_amount, chain_id=None)
         write_transaction_to_holder_account(
             signed_tx, holder_acc, operator_keypair)
 
         resp = execute_transaction_steps_from_account_no_chain_id(operator_keypair, evm_loader, treasury_pool,
                                                                   holder_acc,
-                                                                  [string_setter_contract.solana_address,
+                                                                  [string_setter_eof_contract.solana_address,
                                                                    sender_with_tokens.solana_account_address]
                                                                   )
 
@@ -83,10 +74,10 @@ class TestTransactionStepFromAccountNoChainId:
         sender_balance_after = get_neon_balance(
             solana_client, sender_with_tokens.solana_account_address)
         contract_balance_after = get_neon_balance(
-            solana_client, string_setter_contract.solana_address)
+            solana_client, string_setter_eof_contract.solana_address)
         assert sender_balance_before - transfer_amount == sender_balance_after
         assert contract_balance_before + transfer_amount == contract_balance_after
 
         assert text in to_text(
-            neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, string_setter_contract,
+            neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, string_setter_eof_contract,
                                                   "get()"))

@@ -8,10 +8,7 @@ from .utils.storage import create_holder
 class TestTransactionStepFromAccount:
 
     def test_deploy_eof_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens):
-        self.deploy_contract(operator_keypair, holder_acc,
-                             treasury_pool, evm_loader, sender_with_tokens, True)
-
-    def deploy_contract(self, operator_keypair, holder_acc, treasury_pool, evm_loader, sender_with_tokens, eof):
+        eof = True
         contract_filename = "small.binary"
         contract = create_contract_address(sender_with_tokens, evm_loader)
 
