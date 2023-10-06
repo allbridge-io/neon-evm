@@ -119,10 +119,10 @@ def new_holder_acc(operator_keypair) -> PublicKey:
 @pytest.fixture(scope="function")
 def rw_lock_eof_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_user: Caller,
                          treasury_pool) -> Contract:
-    return deploy_contract(operator_keypair, session_user, "rw_lock.binary", evm_loader, treasury_pool, eof=True)
+    return deploy_contract(operator_keypair, session_user, "rw_lock.binary", evm_loader, treasury_pool)
 
 
 @pytest.fixture(scope="function")
 def string_setter_eof_contract(evm_loader: EvmLoader, operator_keypair: Keypair, session_user: Caller,
                                treasury_pool) -> Contract:
-    return deploy_contract(operator_keypair, session_user, "string_setter.binary", evm_loader, treasury_pool, eof=True)
+    return deploy_contract(operator_keypair, session_user, "string_setter.binary", evm_loader, treasury_pool)
