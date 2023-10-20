@@ -83,7 +83,7 @@ class TestExecuteTrxFromInstruction:
         transfer_amount = random.randint(1, 1000)
 
         contract = deploy_contract(operator_keypair, sender_with_tokens, "string_setter.binary", evm_loader,
-                                   treasury_pool, is_eof)
+                                   treasury_pool, is_eof=is_eof)
 
         sender_balance_before = get_neon_balance(solana_client, sender_with_tokens.solana_account_address)
         contract_balance_before = get_neon_balance(solana_client, contract.solana_address)
