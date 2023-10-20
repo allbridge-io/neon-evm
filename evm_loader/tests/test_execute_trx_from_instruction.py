@@ -99,7 +99,7 @@ class TestExecuteTrxFromInstruction:
                                              contract.solana_address],
                                             operator_keypair)
 
-        check_transaction_logs_have_text(resp.value, "exit_status=0x11")
+        check_transaction_logs_have_text(resp.value, "exit_status=0x12" if is_eof else "exit_status=0x11")
 
         assert text in to_text(neon_cli().call_contract_get_function(evm_loader, sender_with_tokens, contract, "get()"))
 
